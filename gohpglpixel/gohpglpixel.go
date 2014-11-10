@@ -10,13 +10,13 @@ import (
 import "strconv"
 
 type Pixelart struct {
-	height  int
-	width   int
-	canvas  [][]int
-	scaling int
-	filling int
-	border  bool
-	Lala    string
+	Height  int
+	Width   int
+	Canvas  [][]int
+	Scaling int
+	Filling int
+	Border  bool
+	Title   string
 }
 
 func writeLines(lines []string, path string) error {
@@ -34,44 +34,48 @@ func writeLines(lines []string, path string) error {
 }
 
 func (p *Pixelart) SetDim(width int, height int) {
-	p.width = width
-	p.height = height
-	p.canvas = make([][]int, height)
-	for i := range p.canvas {
-		p.canvas[i] = make([]int, width)
+	p.Width = width
+	p.Height = height
+	p.Canvas = make([][]int, height)
+	for i := range p.Canvas {
+		p.Canvas[i] = make([]int, width)
 	}
-	fmt.Println("%v\n", p.canvas)
+	fmt.Println("%v\n", p.Canvas)
 }
 
 func (p *Pixelart) SetPixel(x int, y int, color int) {
-	if x < p.width {
-		if y < p.height {
-			p.canvas[y][x] = color
+	if x < p.Width {
+		if y < p.Height {
+			p.Canvas[y][x] = color
 		}
 	}
 }
 
 func (p *Pixelart) SetScaling(scaling int) {
-	p.scaling = scaling
+	p.Scaling = scaling
 }
 
 func (p *Pixelart) SetFilling(filling int) {
-	p.filling = filling
+	p.Filling = filling
 }
 
 func (p *Pixelart) SetBorder(border bool) {
-	p.border = border
+	p.Border = border
+}
+
+func (p *Pixelart) SetTitle(title string) {
+	p.Title = title
 }
 
 func (p *Pixelart) Print() {
-	fmt.Println(p.canvas)
+	fmt.Println(p.Canvas)
 }
 
 func (p *Pixelart) SaveHPGL(filename string) {
-	hpgl := make([]string, p.width*p.height*6+1)
+	hpgl := make([]string, p.Width*p.Height*6+1)
 	color := make([][]string, 6)
 	for i := range color {
-		color[i] = make([]string, p.width*p.height)
+		color[i] = make([]string, p.Width*p.Height)
 	}
 	count := make([]int, 6)
 	count[0] = 0
@@ -80,16 +84,30 @@ func (p *Pixelart) SaveHPGL(filename string) {
 	count[3] = 0
 	count[4] = 0
 	count[5] = 0
-	hpgl[0] = "SC0,210,0,210;"
-	for j := 0; j < p.width*p.height; j++ {
-		q := j / p.width
-		r := j % p.width
-		if p.canvas[r][q] != 0 {
-			color[p.canvas[r][q]-1][count[p.canvas[r][q]-1]] = p.genratesquare(r, q)
-			count[p.canvas[r][q]-1] = count[p.canvas[r][q]-1] + 1
+	i := 0
+	hpgl[i] = "IN;IP0,0,4000,4000;SC0,100,0,100;"
+	i++
+	switch p.Filling {
+	default:
+		hpgl[i] = ""
+	case 1:
+		hpgl[i] = "FT1"
+	case 2:
+		hpgl[i] = "FT2"
+	case 3:
+		hpgl[i] = "FT3,2,45"
+	case 4:
+		hpgl[i] = "FT4,2,45"
+	}
+	i++
+	for j := 0; j < p.Width*p.Height; j++ {
+		q := j / p.Width
+		r := j % p.Width
+		if p.Canvas[r][q] != 0 {
+			color[p.Canvas[r][q]-1][count[p.Canvas[r][q]-1]] = p.generatesquare(r, q)
+			count[p.Canvas[r][q]-1] = count[p.Canvas[r][q]-1] + 1
 		}
 	}
-	i := 1
 	for j := 0; j < 6; j++ {
 		if count[j] > 0 {
 			hpgl[i] = "SP" + strconv.Itoa(j+1)
@@ -100,28 +118,50 @@ func (p *Pixelart) SaveHPGL(filename string) {
 			}
 		}
 	}
+	if p.Title != "" {
+		titley := (p.Height + 2) * p.Scaling
+		titlex := 0
+		hpgl[i] = "SP1;SI0.8,1.0;PA" + strconv.Itoa(titley) + "," + strconv.Itoa(titlex) + ";LO6;DI0,1;LB" + p.Title
+	} else {
+		hpgl[i] = ""
+	}
 	writeLines(hpgl, filename)
 }
 
-func (p *Pixelart) genratesquare(x int, y int) string {
+func (p *Pixelart) generatesquare(x int, y int) string {
 	Result := ""
-	if p.border {
-		Result = Result + "PU" + strconv.Itoa(x*p.scaling) + "," + strconv.Itoa(y*p.scaling) + ";"
-		Result = Result + "PD" + strconv.Itoa((x+1)*p.scaling) + "," + strconv.Itoa(y*p.scaling) + ";"
-		Result = Result + "PD" + strconv.Itoa((x+1)*p.scaling) + "," + strconv.Itoa((1+y)*p.scaling) + ";"
-		Result = Result + "PD" + strconv.Itoa(x*p.scaling) + "," + strconv.Itoa((1+y)*p.scaling) + ";"
-		Result = Result + "PD" + strconv.Itoa(x*p.scaling) + "," + strconv.Itoa(y*p.scaling) + ";"
+	command := ""
+	if p.Border {
+		command = "ER"
+	} else {
+		command = "RR"
+	}
+
+	Result = "PA" + strconv.Itoa(x*p.Scaling) + "," + strconv.Itoa(y*p.Scaling) + ";"
+	Result = Result + command + strconv.Itoa(p.Scaling) + "," + strconv.Itoa(p.Scaling) + ";"
+
+	return Result
+}
+
+func (p *Pixelart) generatemanualsquare(x int, y int) string {
+	Result := ""
+	if p.Border {
+		Result = Result + "PU" + strconv.Itoa(x*p.Scaling) + "," + strconv.Itoa(y*p.Scaling) + ";"
+		Result = Result + "PD" + strconv.Itoa((x+1)*p.Scaling) + "," + strconv.Itoa(y*p.Scaling) + ";"
+		Result = Result + "PD" + strconv.Itoa((x+1)*p.Scaling) + "," + strconv.Itoa((1+y)*p.Scaling) + ";"
+		Result = Result + "PD" + strconv.Itoa(x*p.Scaling) + "," + strconv.Itoa((1+y)*p.Scaling) + ";"
+		Result = Result + "PD" + strconv.Itoa(x*p.Scaling) + "," + strconv.Itoa(y*p.Scaling) + ";"
 	}
 	i := 0
-	if p.filling > 0 {
+	if p.Filling > 0 {
 		for i < 10 {
-			if (p.filling == 1) || (p.filling == 2) {
-				Result = Result + "PU" + strconv.Itoa(x*p.scaling+i) + "," + strconv.Itoa(y*p.scaling) + ";"
-				Result = Result + "PD" + strconv.Itoa(x*p.scaling) + "," + strconv.Itoa(y*p.scaling+i) + ";"
+			if (p.Filling == 1) || (p.Filling == 2) {
+				Result = Result + "PU" + strconv.Itoa(x*p.Scaling+i) + "," + strconv.Itoa(y*p.Scaling) + ";"
+				Result = Result + "PD" + strconv.Itoa(x*p.Scaling) + "," + strconv.Itoa(y*p.Scaling+i) + ";"
 			}
-			if (p.filling == 1) || (p.filling == 3) {
-				Result = Result + "PU" + strconv.Itoa(x*p.scaling+i) + "," + strconv.Itoa((y+1)*p.scaling) + ";"
-				Result = Result + "PD" + strconv.Itoa((x+1)*p.scaling) + "," + strconv.Itoa(y*p.scaling+i) + ";"
+			if (p.Filling == 1) || (p.Filling == 3) {
+				Result = Result + "PU" + strconv.Itoa(x*p.Scaling+i) + "," + strconv.Itoa((y+1)*p.Scaling) + ";"
+				Result = Result + "PD" + strconv.Itoa((x+1)*p.Scaling) + "," + strconv.Itoa(y*p.Scaling+i) + ";"
 			}
 			i = i + 2
 		}

@@ -145,10 +145,11 @@ func main() {
 	p.Print()
 	p.SetScaling(10)
 	p.SetBorder(false)
-	p.SetFilling(1)
+	p.SetFilling(4)
 	err := p.WritePixelart("schwamerln")
 	if err != nil {
 		log.Fatal(err)
 	}
+	p.SetTitle("Schwamerl")
 	p.SaveHPGL("blub.hpgl")
 }
