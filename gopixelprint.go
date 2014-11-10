@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"gopixelprint/gohpglpixel"
+
+	"github.com/PhilmacFLy/gopixelprint/gohpglpixel"
 
 	"log"
 )
@@ -152,4 +153,7 @@ func main() {
 	}
 	p.SetTitle("Schwamerl")
 	p.SaveHPGL("blub.hpgl")
+
+	test := &gohpglpixel.Pixelart{}
+	test.ReadFile("testfile")
 }
