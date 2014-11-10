@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 )
@@ -17,6 +18,34 @@ type Pixelart struct {
 	Filling int
 	Border  bool
 	Title   string
+}
+
+func (p *Pixelart) ReadFile(filename string) error {
+	p.SetDim(1024, 1024)
+	linecount := 0
+	offset := 0
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	r := bufio.NewReader(file)
+	for {
+		s, err := r.ReadString('\n')
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		offset = 0
+		for _, r := range s {
+			p.SetPixel(offset, linecount, int(r-'0'))
+			offset++
+		}
+		linecount++
+	}
+	p.SetDim(linecount, offset)
+	return nil
 }
 
 func writeLines(lines []string, path string) error {
@@ -40,7 +69,6 @@ func (p *Pixelart) SetDim(width int, height int) {
 	for i := range p.Canvas {
 		p.Canvas[i] = make([]int, width)
 	}
-	fmt.Println("%v\n", p.Canvas)
 }
 
 func (p *Pixelart) SetPixel(x int, y int, color int) {
