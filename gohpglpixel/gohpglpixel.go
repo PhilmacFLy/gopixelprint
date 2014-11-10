@@ -2,6 +2,7 @@ package gohpglpixel
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -28,6 +29,16 @@ func (p *Pixelart) ReadFile(filename string) error {
 	if err != nil {
 		return err
 	}
+	lines, err := lineCounter(file)
+	if err != nil {
+		return err
+	}
+	file.Close()
+	file, _ = os.Open(filename)
+	llen := maxLineLength(file)
+	p.SetDim(llen-1, lines)
+	file.Close()
+	file, _ = os.Open(filename)
 	r := bufio.NewReader(file)
 	for {
 		s, err := r.ReadString('\n')
@@ -44,8 +55,42 @@ func (p *Pixelart) ReadFile(filename string) error {
 		}
 		linecount++
 	}
-	p.SetDim(linecount, offset)
 	return nil
+}
+func maxLineLength(r io.Reader) int {
+	llen := 0
+	br := bufio.NewReader(r)
+
+	for {
+		s, err := br.ReadString('\n')
+		if err == io.EOF {
+			break
+		}
+		if len(s) > llen {
+			llen = len(s)
+		}
+	}
+	return llen
+}
+
+func lineCounter(r io.Reader) (int, error) {
+	buf := make([]byte, 8196)
+	count := 0
+	lineSep := []byte{'\n'}
+
+	for {
+		c, err := r.Read(buf)
+		if err != nil && err != io.EOF {
+			return count, err
+		}
+		count += bytes.Count(buf[:c], lineSep)
+
+		if err == io.EOF {
+			break
+		}
+	}
+
+	return count, nil
 }
 
 func writeLines(lines []string, path string) error {

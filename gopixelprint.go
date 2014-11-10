@@ -156,4 +156,5 @@ func main() {
 
 	test := &gohpglpixel.Pixelart{}
 	test.ReadFile("testfile")
+	fmt.Println(test.Canvas)
 }
