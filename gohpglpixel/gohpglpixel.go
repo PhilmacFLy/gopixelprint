@@ -121,7 +121,7 @@ func (p *Pixelart) SaveHPGL(filename string) {
 	if p.Title != "" {
 		titley := (p.Height + 2) * p.Scaling
 		titlex := 0
-		hpgl[i] = "SP1;SI0.8,1.0;PA" + strconv.Itoa(titley) + "," + strconv.Itoa(titlex) + ";LO6;DI0,1;LB" + p.Title
+		hpgl[i] = "SP1;PA" + strconv.Itoa(titley) + "," + strconv.Itoa(titlex) + ";SI0.8,1.0;DI0,1;LB" + p.Title
 	} else {
 		hpgl[i] = ""
 	}
